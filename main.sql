@@ -45,13 +45,13 @@
 -- WHERE rank <= 5;
 
 
--- CREATE TABLE dialogue AS 
--- SELECT *, LAG(id,1) OVER (ORDER BY id) as prev_id
--- FROM (
---     SELECT *
---     FROM scripts
---     WHERE type = 'dialogue'
---     ORDER BY id) sc
+CREATE VIEW dialogue AS 
+SELECT *, LAG(id,1) OVER (ORDER BY id) as prev_id
+FROM (
+    SELECT *
+    FROM scripts
+    WHERE type = 'dialogue'
+    ORDER BY id) sc
 
 
 

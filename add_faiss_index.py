@@ -190,7 +190,7 @@ def search_similar_texts(db_path, query_text, table_name, column_name, top_k=5):
         conn.close()
 
 if __name__ == '__main__':
-    # main()
+    main()
 
     # 検索例
     print("\nTesting search functionality...")
