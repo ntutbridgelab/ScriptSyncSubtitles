@@ -114,10 +114,11 @@ def save_results_to_db(db_path: str, results: List[Dict], output_table: str = 's
         table2_id INTEGER,
         table1_text TEXT,
         table2_text TEXT,
-        similarity REAL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        similarity REAL
     )''')
 
+    cursor.execute(f'''DELETE FROM {output_table}''')
+    
     # 結果を保存
     cursor.executemany(
         f'''INSERT INTO {output_table} 
