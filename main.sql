@@ -43,9 +43,9 @@
 -- )
 -- WHERE rank = 1;
 
-
+-- DROP VIEW dialogue;
 -- CREATE VIEW dialogue AS 
--- SELECT *, LAG(id,1) OVER (ORDER BY id) as prev_id
+-- SELECT *, ROW_NUMBER() OVER (ORDER BY id) as dialog_id, LAG(id,1) OVER (ORDER BY id) as prev_id
 -- FROM (
 --     SELECT *
 --     FROM scripts
@@ -98,7 +98,7 @@
 --     table2_text as script_text,table1_text as subtitle_text, similarity
 -- FROM similar_pairs
 -- ORDER BY script_id;
--------------------
+-------------------対応表を確認-----------------
 -- SELECT sm.id as script_id, sm.speaker, sm.description, sb.id as subtitle_id, sb.text as subtitle, sb.start_time, sb.end_time
 -- FROM 
 --     subtitles sb FULL OUTER JOIN 
@@ -107,16 +107,63 @@
 --      LEFT OUTER JOIN high_similar_subtitles h ON s.id = h.script_id) sm
 --     ON sb.id = sm.subtitle_id
 -- ORDER BY script_id;
+-------------------
+
+-- WITH DuplicateMapping AS (
+-- SELECT subtitle_id, script_id FROM (
+-- SELECT m1.subtitle_id, m1.prev_id, m2.script_id as prev_script_id ,m3.script_id as script_id,
+--   m3.script_id - m2.script_id as diff,
+--   row_number() OVER (
+--     PARTITION BY m1.subtitle_id
+--     ORDER BY m3.script_id-m2.script_id ASC
+--   ) AS ROW_NUM  
+-- FROM (
+--   SELECT distinct subtitle_id, prev_id
+--   FROM (SELECT distinct subtitle_id, LAG(subtitle_id) over (order by subtitle_id) as prev_id
+--       FROM mappings WHERE script_id IS NOT NULL ORDER BY subtitle_id)
+--   WHERE subtitle_id in (
+--       SELECT subtitle_id
+--       FROM mappings 
+--       WHERE subtitle_id IN  (SELECT subtitle_id FROM mappings GROUP BY subtitle_id HAVING count(*)>1)
+--  ) and subtitle_id > prev_id) m1 JOIN mappings m2 ON m1.prev_id = m2.subtitle_id
+--  JOIN mappings m3 ON m1.subtitle_id = m3.subtitle_id )
+-- WHERE row_num > 1) 
+
+-- DELETE FROM mappings
+-- WHERE (subtitle_id,script_id) IN DuplicateMapping;
+
+-- SELECT s.id, s.text, d.dialog_id, d.speaker, d.description,s.start_time, s.end_time
+--  FROM dialogue d LEFT OUTER JOIN mappings m ON d.id = m.script_id
+--  FULL OUTER JOIN subtitles s ON s.id = m.subtitle_id
+-- ORDER BY s.id
+
+-- CREATE VIEW SubtitleDialogMapping AS 
+-- SELECT s.id, d.dialog_id, s.start_time, s.end_time
+--  FROM dialogue d LEFT OUTER JOIN mappings m ON d.id = m.script_id
+--  FULL OUTER JOIN subtitles s ON s.id = m.subtitle_id
+-- ORDER BY s.id;
+
+
+-- SELECT dialog_id, start_time
+-- FROM SubtitleDialogMapping
+-- WHERE dialog_id IS NOT NULL
+-- ORDER BY dialog_id
+-- LIMIT 20;
 
 .header on
-.mode csv 
-.output script_subtitle_mapping.csv
+.mode csv
+.output results.csv 
 
-WITH dialogue_scriptid_mapping as 
-  (select d.id, d.speaker, d.description, m.subtitle_id
-  from dialogue d left outer join mappings m 
-  on d.id = m.script_id)
-  
-SELECT d.id, d.speaker, d.description, s.id, s.text, s.start_time, s.end_time
-FROM dialogue_scriptid_mapping d 
-     FULL OUTER JOIN subtitles s ON d.subtitle_id = s.id;
+SELECT 
+      s.id, 
+      s.text, 
+      d.dialog_id, 
+      d.speaker, 
+      d.description,
+      COALESCE(s.start_time, dt.start_time) AS start_time, 
+      COALESCE(s.end_time, dt.end_time) AS end_time
+  FROM dialogue d
+  JOIN dialog_time dt ON d.dialog_id = dt.dialog_id
+  LEFT OUTER JOIN mappings m ON d.id = m.script_id
+  FULL OUTER JOIN subtitles s ON s.id = m.subtitle_id
+ORDER BY start_time;

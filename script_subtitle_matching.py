@@ -80,12 +80,10 @@ class SubtitleMapper:
             # 前後の番号との差が50以上ある場合は不適切とみなす
             if((prev_id and abs(current_id - prev_id) > 50) and \
               (next_id and abs(current_id - next_id) > 50)) :
-            # if (prev_id and prev_id > current_id) or \
-            #    (next_id and next_id < current_id):
                 print(f"->prev:{prev_id} current:{current_id} next:{next_id}")
                 # 類似度マッチングから適切な候補を探す
                 if script_id in self.similar_matches:
-                    valid_range = range(prev_id or 0, (next_id or prev_id + 100) + 1)
+                    valid_range = range((prev_id or 0)+1, (next_id or prev_id + 100))
                     for subtitle_id, _ in sorted(self.similar_matches[script_id], 
                                               key=lambda x: x[1], reverse=True):
                         if int(subtitle_id) in valid_range:
