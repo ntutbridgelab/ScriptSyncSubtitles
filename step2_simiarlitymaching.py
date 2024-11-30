@@ -3,7 +3,7 @@ import csv
 import pandas as pd
 import sqlite3
 from src.genscriptdb import exec_sql, fetch_data_by_query
-from src.add_faiss_index import add_embeddings
+from src.addvectorindex import add_embeddings
 from src.scriptmatching import script_matching
 from src.adjustmapping import adjust_mapping_pairs
 from src.addstarttime import add_starttime
