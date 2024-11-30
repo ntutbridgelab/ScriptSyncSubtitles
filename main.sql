@@ -150,20 +150,66 @@
 -- ORDER BY dialog_id
 -- LIMIT 20;
 
-.header on
-.mode csv
-.output results.csv 
 
+CREATE VIEW ScriptSubtitleMapping AS 
+WITH OrderedData AS (
+    SELECT 
+        s.id AS subtitle_id, 
+        s.text AS subtitle_text, 
+        d.dialog_id, 
+        d.speaker AS script_speaker, 
+        d.description AS script_dialog,
+        COALESCE(d.speaker, '?') AS speaker,
+        COALESCE(d.description, s.text) AS subtitle,
+        COALESCE(s.start_time, dt.start_time) AS start_time, 
+        COALESCE(s.end_time, dt.end_time) AS end_time
+    FROM dialogue d
+    JOIN dialog_time dt ON d.dialog_id = dt.dialog_id
+    LEFT OUTER JOIN mappings m ON d.id = m.script_id
+    FULL OUTER JOIN subtitles s ON s.id = m.subtitle_id
+),
+AdjustedTimes AS (
+    SELECT 
+        subtitle_id,
+        subtitle_text,
+        dialog_id,
+        script_speaker,
+        script_dialog,
+        speaker,
+        subtitle,
+        start_time,
+        CASE 
+            WHEN end_time >= LEAD(start_time) OVER (ORDER BY subtitle_id)
+            THEN strftime('%H:%M:%f', datetime(LEAD(start_time) OVER (ORDER BY subtitle_id), '-0.1 seconds'))
+            ELSE end_time
+        END AS adjusted_end_time
+    FROM OrderedData
+)
 SELECT 
-      s.id, 
-      s.text, 
-      d.dialog_id, 
-      d.speaker, 
-      d.description,
-      COALESCE(s.start_time, dt.start_time) AS start_time, 
-      COALESCE(s.end_time, dt.end_time) AS end_time
-  FROM dialogue d
-  JOIN dialog_time dt ON d.dialog_id = dt.dialog_id
-  LEFT OUTER JOIN mappings m ON d.id = m.script_id
-  FULL OUTER JOIN subtitles s ON s.id = m.subtitle_id
-ORDER BY start_time;
+    subtitle_id,
+    subtitle_text,
+    dialog_id,
+    script_speaker,
+    script_dialog,
+    speaker,
+    subtitle,
+    start_time,
+    adjusted_end_time AS end_time
+FROM AdjustedTimes
+ORDER BY start_time
+
+
+
+-- SELECT 
+--       s.id as subtitle_id, 
+--       s.text as subtitle_text, 
+--       d.dialog_id, 
+--       d.speaker as script_spaeker, 
+--       d.description script_dialog,
+--       COALESCE(s.start_time, dt.start_time) AS start_time, 
+--       COALESCE(s.end_time, dt.end_time) AS end_time
+--   FROM dialogue d
+--   JOIN dialog_time dt ON d.dialog_id = dt.dialog_id
+--   LEFT OUTER JOIN mappings m ON d.id = m.script_id
+--   FULL OUTER JOIN subtitles s ON s.id = m.subtitle_id
+-- ORDER BY start_time;

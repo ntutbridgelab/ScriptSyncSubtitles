@@ -1,11 +1,18 @@
 ## 台本を使って字幕修正
 
 1. 台本をCSV形式にする
-2. 台本をLLMで字幕に合うように長さ修正（LLMを使う）
-3. 音声認識で作られた字幕を修正（LLMを使う）
-4. 2と3で作ったデータをそれぞれデータベースに格納
+
+```
+ % python3 genscriptdb.py 
+```
+* 台本txtをSQLite3データベースに読み込む
+* 同時にcsvファイルに出力するようにする
+
+3. 台本をLLMで字幕に合うように長さ修正（LLMを使う）
+4. 音声認識で作られた字幕を修正（LLMを使う）
+5. 2と3で作ったデータをそれぞれデータベースに格納
     DONE
-5. FAISSで字幕ごとにembedding(vector)を作成
+6. FAISSで字幕ごとにembedding(vector)を作成
    
 ```
 % python3 add_faiss_index.py
