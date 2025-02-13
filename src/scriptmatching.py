@@ -49,7 +49,8 @@ def similarity_join(
 
         # FAISSインデックスを作成
         dimension = embeddings2.shape[1]
-        index = faiss.IndexFlatIP(dimension)  # コサイン類似度用のインデックス
+        # コサイン類似度用のインデックス
+        index = faiss.IndexFlatIP(dimension)  
         index.add(embeddings2.astype(np.float32))
 
         # バッチ処理で類似度検索を実行
@@ -75,14 +76,15 @@ def similarity_join(
                         cursor = conn.cursor()
 
                         # table1のテキスト
-                        text_col1 = 'text' if table1 == 'subtitles' else 'description'
+                        text_col1 = 'text' if table1 == 'subtitles' else 'contents'
                         cursor.execute(f"SELECT {text_col1} FROM {table1} WHERE id = ?", (ids1[orig_idx],))
-                        text1 = cursor.fetchone()[0]
+                        text1 = cursor.fetchone()[0]                    
 
                         # table2のテキスト
-                        text_col2 = 'text' if table2 == 'subtitles' else 'description'
+                        text_col2 = 'text' if table2 == 'subtitles' else 'contents'
                         cursor.execute(f"SELECT {text_col2} FROM {table2} WHERE id = ?", (ids2[idx],))
                         text2 = cursor.fetchone()[0]
+
 
                         results.append({
                             f"{table1}_id": ids1[orig_idx],
@@ -90,7 +92,7 @@ def similarity_join(
                             f"{table1}_text": text1,
                             f"{table2}_text": text2,
                             "similarity": similarity
-                        })
+                        })                    
 
         return sorted(results, key=lambda x: x['similarity'], reverse=True)
 
@@ -137,7 +139,7 @@ def script_matching(db_path):
         db_path=db_path,
         table1='subtitles',
         table2='scripts',
-        threshold=0.9,  # 類似度閾値
+        threshold=0.94,  # 類似度閾値
         top_k=10,        # 各レコードに対する最大マッチ数
         batch_size=100  # バッチサイズ
     )

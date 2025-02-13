@@ -24,10 +24,7 @@ def create_table_sql():
     subtitle_index INTEGER,
     start_time TEXT,
     end_time TEXT,
-    text TEXT
-);
-
-DELETE FROM subtitles;
+    text TEXT);
 '''
 
 def generate_insert_statements(srt_file_path):
@@ -40,7 +37,7 @@ def generate_insert_statements(srt_file_path):
 
         for block in blocks:
             lines = block.split('\n')
-            print(lines)
+            # print(lines)
             if len(lines) >= 3:  # 有効なブロックかチェック
                 subtitle_index = int(lines[0])
                 time_line = lines[1]
@@ -86,15 +83,22 @@ if __name__ == "__main__":
   if len(sys.argv) < 3:
       print(f"Usage: {sys.argv[0]} <srtfile> <scriptfile>")
   else:
-      load_srt(sys.argv[1],db_path)
-      load_script_csv(sys.argv[2],db_path)
-      add_embeddings(db_path)
+      # print("loading SRT file...")
+      # load_srt(sys.argv[1],db_path)
+      # print("loading SCRIPT file...")
+      # load_script_csv(sys.argv[2],db_path)
+      # print("adding vector data...")
+      # add_embeddings(db_path)
+      print("script matching...")
       script_matching(db_path)
+      print("adjusting pairs...")
       adjust_mapping_pairs(db_path)
-      for i in range(2):
+      for i in range(20):
          exec_sql("sql/adjust_mapping.sql",db_path)
       exec_sql("sql/delete_duplicatemapping.sql",db_path)
+      print("adding starttime...")
       add_starttime(db_path)
+      print("output mapping file...")
       results = fetch_data_by_query(db_path,"SELECT * FROM ScriptSubtitleMapping")
       csv_content = []
       try:

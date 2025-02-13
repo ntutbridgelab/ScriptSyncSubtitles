@@ -1,8 +1,10 @@
 import sqlite3
 from typing import Dict, List, Optional, Tuple
 
+
 class SubtitleMapper:
-    def __init__(self,db_path):
+
+    def __init__(self, db_path):
         self.similar_matches: Dict[str, List[Tuple[str, float]]] = {}
         self.mapping_data: List[dict] = []
         self.db_path = db_path
@@ -39,6 +41,7 @@ class SubtitleMapper:
                 subtitle_id
             FROM dialogue d LEFT OUTER JOIN high_similar_subtitles h
               ON d.id = h.script_id
+            WHERE script_id IS NOT NULL
         ''')
 
         for row in cursor.fetchall():
@@ -48,7 +51,7 @@ class SubtitleMapper:
             })
 
         conn.close()
-        
+
     def find_valid_subtitle_id(self, current_idx: int) -> Optional[str]:
         """与えられたインデックスの行に対して適切なsubtitle_idを見つける"""
         current_entry = self.mapping_data[current_idx]
@@ -70,23 +73,28 @@ class SubtitleMapper:
                 next_id = int(self.mapping_data[i]['subtitle_id'])
                 break
 
-
         # 現在のsubtitle_idがある場合
         if current_entry['subtitle_id']:
             current_id = int(current_entry['subtitle_id'])
 
-            # 前後の番号との差が50以上ある場合は不適切とみなす
-            if((prev_id and abs(current_id - prev_id) > 50) and \
-              (next_id and abs(current_id - next_id) > 50)) :
+            # 前後の番号との差が20以上ある場合は不適切とみなす
+            if((prev_id and abs(current_id - prev_id) > 20) and \
+              (next_id and abs(current_id - next_id) > 20)) :
+
                 # 類似度マッチングから適切な候補を探す
                 if script_id in self.similar_matches:
-                    valid_range = range((prev_id or 0)+1, (next_id or prev_id + 100))
-                    for subtitle_id, _ in sorted(self.similar_matches[script_id], 
-                                              key=lambda x: x[1], reverse=True):
+                    valid_range = range((prev_id or 0) + 1,
+                                        (next_id or prev_id + 100))
+                    for subtitle_id, _ in sorted(
+                            self.similar_matches[script_id],
+                            key=lambda x: x[1],
+                            reverse=True):
                         if int(subtitle_id) in valid_range:
                             current_entry['subtitle_id'] = subtitle_id
                             return subtitle_id
                 return None
+            # print(f"prev:{prev_id},current:{current_id},next:{next_id}")
+
             return str(current_id)
         return None
 
@@ -104,7 +112,6 @@ class SubtitleMapper:
                 self.mapping_data[i]['subtitle_id'] = valid_id
                 self.mapping_data[i]
 
-
     def save_mapping(self) -> None:
         """処理したマッピングデータをデータベースに保存"""
         conn = sqlite3.connect(self.db_path)
@@ -116,23 +123,27 @@ class SubtitleMapper:
                 script_id int,
                 subtitle_id int);
         ''')
-        
+
         # まず既存のマッピングをクリアする（必要に応じて）
         cursor.execute('DELETE FROM mappings')
+        conn.commit()
 
         # 新しいマッピングを挿入
         for entry in self.mapping_data:
-            cursor.execute('''
-                INSERT INTO mappings (
-                    script_id, subtitle_id
-                ) VALUES (?, ?)
-            ''', (
-                entry['script_id'],
-                entry['subtitle_id'] if entry['subtitle_id'] else None,
-            ))
+            if (entry['script_id'] and entry['subtitle_id']):
+                cursor.execute(
+                    '''
+                    INSERT INTO mappings (
+                        script_id, subtitle_id
+                    ) VALUES (?, ?)
+                ''', (
+                        entry['script_id'],
+                        entry['subtitle_id'],
+                    ))
 
         conn.commit()
         conn.close()
+
 
 def adjust_mapping_pairs(db_path):
     mapper = SubtitleMapper(db_path)
@@ -146,6 +157,7 @@ def adjust_mapping_pairs(db_path):
 
     # データベースに結果を保存
     mapper.save_mapping()
+
 
 if __name__ == "__main__":
     adjust_mapping_pairs("scripts.db")

@@ -79,8 +79,8 @@ def create_and_save_faiss_index(embeddings):
 
 def process_table(conn, embedder, table_name, text_column):
     """テーブルのテキストデータを処理してembeddingとインデックスを追加"""
+    
     cursor = conn.cursor()
-
     # テキストデータの取得
     cursor.execute(f'SELECT id, {text_column} FROM {table_name} ORDER BY id')
     rows = cursor.fetchall()
@@ -125,7 +125,7 @@ def add_embeddings(db_path):
         # 各テーブルの処理
         tables_to_process = [
             ('subtitles', 'text'),
-            ('scripts', 'description')
+            ('scripts', 'contents')
         ]
 
         for table_name, text_column in tables_to_process:

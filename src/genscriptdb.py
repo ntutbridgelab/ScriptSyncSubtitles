@@ -28,7 +28,7 @@ def parse_script(text: str) -> tuple[List[tuple[int, str]], List[ScriptLine]]:
         line = line.strip()
         if not line:
             continue
-
+        
         scene_match = re.match(scene_pattern, line)
         if scene_match:
             current_scene_id = int(scene_match.group(1))
@@ -204,7 +204,7 @@ def generate_script_table(input_file,db_path):
     # 入力ファイルのパスをPathオブジェクトに変換
     input_path = Path(input_file)
     # 入力ファイル名と同じ名前で拡張子を変更
-    output_file = f"../tmp/{input_path.with_suffix('.sql')}"
+    output_file = f"./tmp/{input_path.with_suffix('.sql')}"
     print(f"Input file: {input_file}")
     print(f"Output file: {output_file}")
     try:

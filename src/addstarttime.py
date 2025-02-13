@@ -1,6 +1,6 @@
 import sqlite3
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime,time, timedelta
 
 # 日時形式に変換
 def parse_time(time_str):
@@ -27,8 +27,10 @@ def fill_missing_times(df):
             while i < n and pd.isnull(df.loc[i, 'start_time']):
                 i += 1
             end_idx = i
-
-            prev_time = df.loc[start_idx, 'start_time']
+            if start_idx < 0:
+                prev_time = pd.Timestamp(0)
+            else:
+                prev_time = df.loc[start_idx, 'start_time']
             next_time = df.loc[end_idx, 'start_time'] if end_idx < n else None
 
             if next_time:
@@ -65,18 +67,19 @@ def add_starttime(db_path):
     # データを取得
     query = "SELECT dialog_id, start_time, end_time FROM SubtitleDialogMapping WHERE dialog_id IS NOT NULL ORDER BY dialog_id;"
     df = pd.read_sql_query(query, conn)
-    
+    if df.empty:
+        return
     df['start_time'] = df['start_time'].apply(parse_time)
     df['end_time'] = df['end_time'].apply(parse_time)
-    
+
     # 処理実行
     filled_df = fill_missing_times(df)
-    
+
     # 書式を元に戻す
     filled_df['start_time'] = filled_df['start_time'].apply(
         lambda x: x.strftime("%H:%M:%S.%f")[:-3] if pd.notnull(x) else None
     )
-    
+
     filled_df['end_time'] = filled_df['end_time'].apply(
         lambda x: x.strftime("%H:%M:%S.%f")[:-3] if pd.notnull(x) else None
     )
