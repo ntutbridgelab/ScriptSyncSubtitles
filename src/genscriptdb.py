@@ -3,7 +3,9 @@ import sys
 from dataclasses import dataclass
 from typing import List, Optional
 from pathlib import Path
+import pysqlite3
 import sqlite3
+sqlite3 = pysqlite3
 
 
 @dataclass

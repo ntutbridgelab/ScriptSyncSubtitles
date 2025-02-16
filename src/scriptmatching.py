@@ -1,4 +1,6 @@
+import pysqlite3
 import sqlite3
+sqlite3 = pysqlite3
 import numpy as np
 import faiss
 from typing import List, Dict, Tuple

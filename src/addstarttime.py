@@ -1,4 +1,6 @@
+import pysqlite3
 import sqlite3
+sqlite3 = pysqlite3
 import pandas as pd
 from datetime import datetime,time, timedelta
 

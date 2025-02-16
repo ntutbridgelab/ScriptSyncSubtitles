@@ -1,4 +1,6 @@
+import pysqlite3
 import sqlite3
+sqlite3 = pysqlite3
 from typing import Dict, List, Optional, Tuple
 
 

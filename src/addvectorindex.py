@@ -1,4 +1,6 @@
+import pysqlite3
 import sqlite3
+sqlite3 = pysqlite3
 import numpy as np
 from transformers import AutoTokenizer, AutoModel
 import torch

@@ -1,7 +1,10 @@
 import sys
 import csv
 import pandas as pd
+import pysqlite3
 import sqlite3
+sqlite3 = pysqlite3
+
 from src.genscriptdb import exec_sql, fetch_data_by_query
 from src.addvectorindex import add_embeddings
 from src.scriptmatching import script_matching
@@ -83,12 +86,13 @@ if __name__ == "__main__":
   if len(sys.argv) < 3:
       print(f"Usage: {sys.argv[0]} <srtfile> <scriptfile>")
   else:
-      # print("loading SRT file...")
-      # load_srt(sys.argv[1],db_path)
-      # print("loading SCRIPT file...")
-      # load_script_csv(sys.argv[2],db_path)
-      # print("adding vector data...")
-      # add_embeddings(db_path)
+      exec_sql("sql/setup.sql",db_path);
+      print("loading SRT file...")
+      load_srt(sys.argv[1],db_path)
+      print("loading SCRIPT file...")
+      load_script_csv(sys.argv[2],db_path)
+      print("adding vector data...")
+      add_embeddings(db_path)
       print("script matching...")
       script_matching(db_path)
       print("adjusting pairs...")
