@@ -14,6 +14,17 @@ DROP VIEW if exists high_similar_subtitles;
 DROP VIEW if exists AbekobeSubtitle;
 DROP VIEW if exists AbekobeScript;
 DROP VIEW if exists ScriptSubtitleMapping;
+DROP VIEW if exists ScriptSurroundingInfo;
+
+CREATE TABLE  scripts (
+"index" INTEGER,
+  "id" INTEGER,
+  "scene_id" INTEGER,
+  "type" TEXT,
+  "speaker" TEXT,
+  "contents" TEXT
+, embedding BLOB);
+CREATE INDEX "ix_scripts_index"ON "scripts" ("index");
 
 CREATE TABLE subtitles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,15 +100,6 @@ FROM
     ON sm.subtitle_id = sb.id
 ORDER BY script_id
 /* subtitle_script_mapping(script_id,speaker,contents,subtitle_id,subtitle,start_time,end_time) */;
-CREATE TABLE IF NOT EXISTS scripts (
-"index" INTEGER,
-  "id" INTEGER,
-  "scene_id" INTEGER,
-  "type" TEXT,
-  "speaker" TEXT,
-  "contents" TEXT
-, embedding BLOB);
-CREATE INDEX "ix_scripts_index"ON "scripts" ("index");
 CREATE VIEW high_similar_subtitles as 
 SELECT *
 FROM (

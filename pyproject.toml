@@ -2,10 +2,13 @@
 name = "python-template"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
 requires-python = ">=3.11"
 dependencies = [
+    "pysqlite3-binary==0.5.4",
     "openai==1.55.1",
     "pandas==2.2.3",
     "regex==2024.11.6",
+    "transformers==4.48.3",
+    "torch==2.5.0",
+    "faiss-cpu==1.10.0"
 ]
