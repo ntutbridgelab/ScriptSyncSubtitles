@@ -3,7 +3,7 @@ import sqlite3
 sqlite3 = pysqlite3
 import numpy as np
 import faiss
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, ValuesView, Optional
 
 def load_embeddings(conn: sqlite3.Connection, table_name: str, id_column: str = 'id') -> Tuple[List[int], np.ndarray]:
     """テーブルからembeddingを読み込む"""
@@ -19,6 +19,84 @@ def load_embeddings(conn: sqlite3.Connection, table_name: str, id_column: str = 
         embeddings.append(embedding)
 
     return ids, np.vstack(embeddings)
+
+def similarity_join_lcs(
+    db_path: str,
+    subtitles: str, # table1を文字起こしにしたので後で修正
+    scripts: str, # table2を台本にしたので後で修正
+    threshold: float = 0.9,
+    top_k: int = 10,
+    batch_size: int = 100
+):
+
+    valid_pairs = []
+    
+    conn = sqlite3.connect(db_path)
+    results = []
+
+    try:
+        # 各テーブルのembeddingを読み込み
+        ids_sub, emb_sub = load_embeddings(conn, subtitles)
+        ids_scr, emb_scr = load_embeddings(conn, scripts)
+
+        # FAISSインデックスを作成
+        dimension = emb_scr.shape[1]
+        # コサイン類似度用のインデックス
+        index = faiss.IndexFlatIP(dimension)  
+        index.add(emb_scr.astype(np.float32))
+
+        # バッチでemb_subの1個1個に対してtop5かつ閾値以上のペアだけをsimilarity_pairsに入れる
+        for i in range(0, len(emb_sub), batch_size):
+            batch_end = min(i + batch_size, len(emb_sub))
+            batch = emb_sub[i:batch_end]
+
+            # 類似度検索(top_k)
+            D, I = index.search(batch.astype(np.float32), top_k)
+            # 結果の処理
+            for batch_idx, (distances, indices) in enumerate(zip(D, I)):
+                sub_idx = i + batch_idx
+                for dist, scr_idx in zip(distances, indices):
+                    similarity = float(dist)  # コサイン類似度
+                    if similarity >= threshold:
+                        valid_pairs.append((ids_sub[sub_idx],ids_scr[scr_idx],similarity))
+            
+    finally:
+        conn.close()
+
+    # 順序制約付き（クロスしない）最大重み二部マッチング問題を解く
+    valid_pairs.sort(key=lambda x: x[2], reverse=True)
+    # DPテーブルの初期化: 最初のk個のペアを考慮した場合の最大類似度
+    dp = [0] * (len(valid_pairs))
+    # バックトラックのための前任者記録
+    prev: List[Optional[int]] = [None] * (len(valid_pairs)+1)
+
+    #各ペアを検討
+    for cur_idx, (cur_sub, cur_scr, cur_sim) in enumerate(valid_pairs):
+        #ベースケース：このペアだけを選ぶ
+        dp[cur_idx + 1] = cur_sim
+        #このペアの前に選べるペアを探す
+        for prev_idx, (prev_sub, prev_scr, _) in enumerate(valid_pairs[:cur_idx]):
+           if prev_sub < cur_sub and prev_scr < prev_scr:
+               if dp[prev_idx + 1] + cur_sim > dp[cur_idx + 1]:
+                   dp[cur_idx + 1] = dp[prev_idx + 1] + cur_sim
+                   prev[cur_idx + 1] = prev_idx + 1
+
+    max_val = max(dp)
+    max_idx = dp.index(max_val)
+
+    matches = []
+    cur = max_idx 
+
+    while cur is not None and cur > 0:
+        pair_idx = cur - 1
+        sub_id,scr_id,_ = valid_pairs[pair_idx]
+        matches.append((sub_id, scr_id))
+        cur = prev[cur]
+
+    matches.reverse()
+
+    return matches
+
 
 def similarity_join(
     db_path: str,
@@ -135,7 +213,7 @@ def save_results_to_db(db_path: str, results: List[Dict], output_table: str = 's
 
 def script_matching(db_path):
 
-    # 類似結合を実行
+    # 全ての組み合わせで類似度を計算し、閾値以上のペアだけをresultsに出力
     print("Performing similarity join between subtitles and scripts...")
     results = similarity_join(
         db_path=db_path,
@@ -144,12 +222,26 @@ def script_matching(db_path):
         threshold=0.94,  # 類似度閾値
         top_k=10,        # 各レコードに対する最大マッチ数
         batch_size=100  # バッチサイズ
-    )
+    )    
 
-    # 結果をデータベースに保存
+    # resultsをデータベースに保存
     print("\nSaving results to database...")
     save_results_to_db(db_path, results)
     print("Done!")
+
+def script_matching_bylcs(db_path):
+    # 全ての組み合わせで類似度を計算し、閾値以上のペアだけをresultsに出力
+    print("Performing similarity join between subtitles and scripts...")
+    results = similarity_join(
+        db_path=db_path,
+        table1='subtitles',
+        table2='scripts',
+        threshold=0.94,  # 類似度閾値
+        top_k=10,        # 各レコードに対する最大マッチ数
+        batch_size=100  # バッチサイズ
+    )    
+    return results
+
 
 if __name__ == '__main__':
     main("scripts.db")

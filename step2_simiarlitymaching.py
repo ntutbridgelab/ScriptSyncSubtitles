@@ -7,7 +7,7 @@ sqlite3 = pysqlite3
 
 from src.genscriptdb import exec_sql, fetch_data_by_query
 from src.addvectorindex import add_embeddings
-from src.scriptmatching import script_matching
+from src.scriptmatching import script_matching, script_matching_bylcs
 from src.adjustmapping import adjust_mapping_pairs
 from src.addstarttime import add_starttime
 
@@ -94,23 +94,23 @@ if __name__ == "__main__":
       print("adding vector data...")
       add_embeddings(db_path)
       print("script matching...")
-      script_matching(db_path)
-      print("adjusting pairs...")
-      adjust_mapping_pairs(db_path)
-      for i in range(20):
-         exec_sql("sql/adjust_mapping.sql",db_path)
-      exec_sql("sql/delete_duplicatemapping.sql",db_path)
-      print("adding starttime...")
-      add_starttime(db_path)
-      print("output mapping file...")
-      results = fetch_data_by_query(db_path,"SELECT * FROM ScriptSubtitleMapping")
-      csv_content = []
-      try:
-          with open("mapping.csv", 'w', encoding='utf-8') as f:
-              writer = csv.writer(f)
-              for row in results:
-                  writer.writerow(row)
+      script_matching_bylcs(db_path)
+      # print("adjusting pairs...")
+      # adjust_mapping_pairs(db_path)
+      # for i in range(20):
+      #    exec_sql("sql/adjust_mapping.sql",db_path)
+      # exec_sql("sql/delete_duplicatemapping.sql",db_path)
+      # print("adding starttime...")
+      # add_starttime(db_path)
+      # print("output mapping file...")
+      # results = fetch_data_by_query(db_path,"SELECT * FROM ScriptSubtitleMapping")
+      # csv_content = []
+      # try:
+      #     with open("mapping.csv", 'w', encoding='utf-8') as f:
+      #         writer = csv.writer(f)
+      #         for row in results:
+      #             writer.writerow(row)
                   
-          print("字幕とセリフの対応表を作りました")
-      except Exception as e:
-          print(f"Error: ファイル書き込み中にエラーが発生しました: {e}")
+      #     print("字幕とセリフの対応表を作りました")
+      # except Exception as e:
+      #     print(f"Error: ファイル書き込み中にエラーが発生しました: {e}")
